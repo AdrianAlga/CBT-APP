@@ -3,25 +3,13 @@
 namespace App\Http\Livewire\School;
 
 use App\Models\School;
+use App\Models\Student;
+use App\Models\Teacher;
 use Livewire\Component;
 
 class Index extends Component
 {
     public $school_id, $school_name, $school_category;
-    protected $listeners = ["schoolStore" => "render"];
-
-    function resetField()
-    {
-        $this->school_name = '';
-        $this->school_category = '';
-        $this->school_id = '';
-    }
-
-    function setField(School $school) {
-        $this->school_id = $school->id;
-        $this->school_name = $school->school_name;
-        $this->school_category = $school->school_category;
-    }
 
     public function render()
     {
@@ -54,7 +42,6 @@ class Index extends Component
     function edit(School $school)
     {
         $this->setField($school);
-        // $this->dispatchBrowserEvent('show-edit-modal');
     }
 
     function update(School $school)
@@ -70,16 +57,34 @@ class Index extends Component
         $this->dispatchBrowserEvent('close-modal');
     }
 
-    function delete(School $school)
+    function destroy(School $school)
     {
-        $this->setField($school);
-        // $this->dispatchBrowserEvent('show-delete-modal');
+        $teacherUse = Teacher::where('school_id', $school->id)->count();
+        $studentUse = Student::where('school_id', $school->id)->count();
+        if ($teacherUse > 0 || $studentUse >0) {
+            session()->flash("failed", "$school->school_name tidak dapat dihapus karena digunakan di $teacherUse Guru dan $studentUse Siswa");
+            $this->resetField();
+            $this->dispatchBrowserEvent('close-modal');
+        } else {
+            $school->delete();
+            session()->flash("success", "Sekolah berhasil dihapus");
+            $this->resetField();
+            $this->dispatchBrowserEvent('close-modal');
+        }
+
     }
 
-    function destroy(School $school) {
-        $school->delete();
-        session()->flash("success", "Sekolah berhasil dihapus");
-        $this->resetField();
-        $this->dispatchBrowserEvent('close-modal');
+    function resetField()
+    {
+        $this->school_id = '';
+        $this->school_name = '';
+        $this->school_category = '';
+    }
+
+    function setField(School $school)
+    {
+        $this->school_id = $school->id;
+        $this->school_name = $school->school_name;
+        $this->school_category = $school->school_category;
     }
 }
